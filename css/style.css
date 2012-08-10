@@ -1,0 +1,29 @@
+body{
+	font:14px/1.3em Arial, Helvetica, sans-serif;
+	background: #EEE;
+	color:#666;
+}
+.page{
+	background: #FFF;
+	width:900px;
+	margin: 10px auto;
+	padding:30px;
+	border:solid 1px #DDD;
+	box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+}
+h1{
+	border-bottom:dotted 1px #CCC;
+	padding-bottom: 10px;
+	margin-bottom: 20px;
+}
+
+canvas#millebornes{
+	border:solid 1px #CCC;
+	background: #FFF;
+	display: block;
+	margin:0 auto 20px;
+	cursor: pointer;
+	color: #333;
+	line-height: 480px;
+	text-align: center;
+}
