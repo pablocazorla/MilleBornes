@@ -1,4 +1,4 @@
-//Debbuger TEMP	
+//Debbuger TEMP	***********************************************************************************
 l = function (message) {
 	try {
 		console.log(message);
@@ -6,11 +6,8 @@ l = function (message) {
 		return;
 	};
 };
-//-------------------------------------------------------------------
-//Scope
-var canvas,c,text,stage,pre_stage;
-//-------------------------------------------------------------
-// UTILS
+
+//Utils ************************************************************************************************
 /* Object extend */	
 var ext = function(destination, source) {
 	for (var property in source) {
@@ -57,121 +54,261 @@ get_scroll = function(){
     return obj;
 };
 
-//---------------------------------------------------------------------
-// Canvas and c
-canvas = document.getElementById('millebornes');
-c = canvas.getContext('2d');
-
+//Millebornes 
+// Canvas and Context Config *******************************************************************************
+var canvas = document.getElementById('millebornes'),
+c = canvas.getContext('2d'); //Context
 canvas.center = {
 	x : canvas.width/2,
 	y : canvas.height/2
 };
 c.textBaseline = 'middle';
-//Text
-text = function(custom){
-	var conf = {
-		x : 0,
-		y : 0,
-		text : 'text',
-		font : 'Arial, sans-serif',
-		size : 14,
-		color : '#000',
-		align : 'left'
-	};
-	conf = ext(conf,custom);
-	this.text = conf.text;
-	this.draw = function(){
-		
-		c.fillStyle = conf.color;
-		c.font = conf.size + 'px ' + conf.font;
-		c.textAlign = conf.align;
-		c.fillText (this.text, conf.x, conf.y);
-		
-	};
-};
-button = function(custom){
-	var conf = {
-		x : 0,
-		y : 0,
-		text : 'text',
-		size : 24,
-		width : 140,
-		height : 36,
-		background : '#def'
-	};
-	conf = ext(conf,custom);
-	var xMin = conf.x-conf.width/2,
-		xMax = conf.x+conf.width/2,
-		yMin = conf.y-conf.height/2,
-		yMax = conf.y+conf.height/2,
-		background = conf.background;
-		
-	this.draw = function(){
-		c.fillStyle = background;
-		c.strokeStyle = '#666';
-		c.beginPath();
-		c.moveTo(xMin,yMin);
-		c.lineTo(xMax,yMin);
-		c.lineTo(xMax,yMax);
-		c.lineTo(xMin,yMax);
-		c.lineTo(xMin,yMin);
-		c.fill();
-		c.stroke();
-		c.closePath();
-		c.fillStyle = '#666';
-		c.font = conf.size + 'px Arial, sans-serif';
-		c.textAlign = 'center';
-		c.textBaseline = "middle";
-		c.fillText (conf.text, conf.x, conf.y);
-	};
-	this.click = function(ev,callback){
-		var mouseX = ev.clientX-canvas.offsetLeft + get_scroll().x,
-			mouseY = ev.clientY-canvas.offsetTop + get_scroll().y;
-		if(mouseX > xMin && mouseX < xMax && mouseY > yMin && mouseY < yMax){
-			callback();
-		};
-	};
-	this.hover = function(ev){
-		var mouseX = ev.clientX-canvas.offsetLeft + get_scroll().x,
-			mouseY = ev.clientY-canvas.offsetTop + get_scroll().y;
-		if(mouseX > xMin && mouseX < xMax && mouseY > yMin && mouseY < yMax){
-			background = '#444';
-		}else{
-			background = conf.background;
-		};
-	}
-	
-};
-//Stage ******************************************************************************************
-stage = 'pre'; //pre,play,end
 
-desktop = {
-	deck : {
-		x : canvas.center.x,
-		y : 143
-	},
-	hand : {
-		x : canvas.center.x - 250,
-		y : 440
-	},
-	discardedCards : {
-		x : canvas.center.x,
-		y : 272
-	}
-};
-
-shadow = function(arg){
+//Functions ***************************************************************************************************
+//Hit detector for Events
+var hit = function(ev,xmin,xmax,ymin,ymax){
+	var mouseX = ev.clientX-canvas.offsetLeft + get_scroll().x,
+		mouseY = ev.clientY-canvas.offsetTop + get_scroll().y;
+	if(mouseX > xmin && mouseX < xmax && mouseY > ymin && mouseY < ymax){
+		return true;
+	}else{
+		return false;
+	};
+},
+//Draw shadow
+	shadow = function(arg){
 	var sd = arg.split(' ');
 	c.shadowOffsetX = parseInt(sd[0]);
 	c.shadowOffsetY = parseInt(sd[1]);
 	c.shadowBlur = parseInt(sd[2]);
 	c.shadowColor = sd[3];
+},
+//Draw page
+drawPage = function(){	
+	var margin = 10,
+		background = '#EEE',
+		border = '#999';
+	
+	c.fillStyle = background;
+	c.strokeStyle = border;
+	
+	c.beginPath();
+	c.moveTo(margin,margin);
+	c.lineTo(canvas.width-margin,margin);
+	c.lineTo(canvas.width-margin,canvas.height-margin);
+	c.lineTo(margin,canvas.height-margin);
+	c.lineTo(margin,margin);
+	c.fill();
+	c.stroke();
+	c.closePath();
 };
+//Basic Classes ***************************************************************************************************
+//Text
+var text_class = function(custom){this.init(custom)},
+	text = function(custom){return new text_class(custom);};
+text_class.prototype ={
+	conf : null,
+	init : function(custom){
+		this.reset();
+		this.conf = ext(this.conf,custom);
+		return this;
+	},
+	reset : function(){
+		this.conf = {
+			x : 0,
+			y : 0,
+			text : 'text',
+			font : 'Arial, sans-serif',
+			size : 14,
+			color : '#000',
+			align : 'left'
+		};
+	},
+	draw : function(custom){
+		this.conf = ext(this.conf,custom);
+		c.fillStyle = this.conf.color;
+		c.font = this.conf.size + 'px ' + this.conf.font;
+		c.textAlign = this.conf.align;
+		c.fillText (this.conf.text, this.conf.x, this.conf.y);
+		return this;
+	}
+};
+//Button
+var button_class = function(custom){this.init(custom)},
+	button = function(custom){return new button_class(custom);};
+button_class.prototype = {
+	conf : null,
+	xMin : 0,
+	xMax : 0,
+	yMin : 0,
+	yMax : 0,
+	background : '',
+	init : function(custom){
+		this.reset();
+		this.conf = ext(this.conf,custom);
+		this.xMin = this.conf.x-this.conf.width/2,
+		this.xMax = this.conf.x+this.conf.width/2,
+		this.yMin = this.conf.y-this.conf.height/2,
+		this.yMax = this.conf.y+this.conf.height/2,
+		this.background = this.conf.background;
+		return this;
+	},
+	reset : function(){
+		this.conf = {
+			x : 0,
+			y : 0,
+			text : 'text',
+			size : 24,
+			width : 140,
+			height : 36,
+			background : '#def'
+		};
+	},
+	draw : function(){
+		c.fillStyle = this.background;
+		c.strokeStyle = '#666';
+		c.beginPath();
+		c.moveTo(this.xMin,this.yMin);
+		c.lineTo(this.xMax,this.yMin);
+		c.lineTo(this.xMax,this.yMax);
+		c.lineTo(this.xMin,this.yMax);
+		c.lineTo(this.xMin,this.yMin);
+		c.fill();
+		c.stroke();
+		c.closePath();
+		c.fillStyle = '#666';
+		c.font = this.conf.size + 'px Arial, sans-serif';
+		c.textAlign = 'center';
+		c.textBaseline = "middle";
+		c.fillText (this.conf.text, this.conf.x, this.conf.y);
+		return this;
+	},
+	click : function(ev,callback){
+		if(hit(ev,this.xMin,this.xMax,this.yMin,this.yMax)){
+			canvas.style.cursor = '';
+			callback();
+		};
+		return this;
+	},
+	hover : function(ev,callback){
+		if(hit(ev,this.xMin,this.xMax,this.yMin,this.yMax)){
+			this.background = '#444';	
+			canvas.style.cursor = 'pointer';
+		}else{
+			this.background = this.conf.background;
+			canvas.style.cursor = '';
+		};
+		return this;
+	}
+};
+//Image
+var img_class = function(src,custom){this.init(src,custom)},
+	img = function(src,custom){return new img_class(src,custom);};
+img_class.prototype = {	
+	conf : {
+		img : null,
+		x : 0,
+		y : 0,
+		w : null,
+		h : null,
+		dx : null,
+		dy : null,
+		dw : null,
+		dh : null
+	},
+	init : function(src,custom){
+		this.reset();
+		this.conf = ext(this.conf,custom);
+		this.conf.img = new Image();
+		this.conf.img.src = src;
+		return this;
+	},
+	reset : function(){
+		this.conf = {
+			img : null,
+			x : 0,
+			y : 0,
+			w : null,
+			h : null,
+			dx : null,
+			dy : null,
+			dw : null,
+			dh : null
+		};
+	},
+	draw : function(custom){
+		this.conf = ext(this.conf,custom);
+		if(!this.conf.w){
+			c.drawImage(this.conf.img,this.conf.x,this.conf.y);
+		}else{
+			c.drawImage(this.conf.img,this.conf.x,this.conf.y,this.conf.w,this.conf.h,this.conf.dx,this.conf.dy,this.conf.dw,this.conf.dh);
+		};
+		return this;
+	}
+};
+
+// Game Classes ****************************************************************************************
+// Desktop
+var desktop_class = function(){},
+	imageDesktop = img('img/desktop.jpg');
+desktop_class.prototype = {
+	deck : {
+		x : canvas.center.x,
+		y : 143
+	},
+	hand : {
+		y : 440
+	},
+	discardedCards : {
+		x : canvas.center.x,
+		y : 272
+	},
+	runZoneCardsPC : {
+		x : 205,
+		y : 143
+	},
+	runZoneCardsHuman : {
+		x : 595,
+		y : 143
+	},
+	maxVelZoneCardsPC : {
+		x : 205,
+		y : 272
+	},
+	maxVelZoneCardsHuman : {
+		x : 595,
+		y : 272
+	},
+	safeZoneCardsPC : {
+		x : 62,
+		y : 114
+	},
+	safeZoneCardsHuman : {
+		x : 735,
+		y : 114
+	},
+	draw : function(){
+		imageDesktop.draw();
+	}
+};
+var	desktop = new desktop_class();
+	
 //Card
-class_card = function(type,subtype){this.init(type,subtype);};
+//Config for cards
+var imageCards = img('img/cards.png',{
+						y : 0,
+						w : 70,
+						h : 90,
+						dw : 70,
+						dh : 90
+					}),
+	class_card = function(type,subtype){this.init(type,subtype);},
+	card = function(type,subtype){return new class_card(type,subtype);};
 class_card.prototype = {
 	type : '',
 	subtype : '',
+	text : null,
+	textb : null,
 	visible : false,
 	turned : false,
 	dragged : false,
@@ -188,7 +325,6 @@ class_card.prototype = {
 	maxX : 0,
 	minY : 0,
 	maxY : 0,
-	
 	posImage : 0,
 	fontSize : 36,
 	
@@ -197,31 +333,102 @@ class_card.prototype = {
 		this.subtype = subtype;
 		this.midW = this.width/2;
 		this.midH = this.height/2;
-		if(typeof type == 'number' && type >= 100){
-			this.fontSize = 30;
-		}
+		if(typeof type == 'number'){
+			if(type >= 100){
+				this.fontSize = 30;
+			};
+			this.text = text({
+				text : this.type,
+				size : this.fontSize,
+				color : '#FFF',
+				align : 'center'
+			});
+		};
 		switch(this.type){
 			case '50 max':
 				this.posImage = 70;
+				this.text = text({
+					text : '50',
+					size : '34',
+					color : '#FFF',
+					align : 'center'
+				});
+				this.textb = text({
+					text : 'MAX',
+					size : '16',
+					color : '#FFF',
+					align : 'center'
+				});
 				break;
-			case 'Fin max':
+			case 'End max':
 				this.posImage = 140;
+				this.text = text({
+					text : 'MAX',
+					size : '22',
+					color : '#FFF',
+					align : 'center'
+				});
 				break;
-			default:
-				
-		}
+			case 'Semaphore':
+				this.posImage = 210;
+				break;
+			case 'Stop':
+				this.posImage = 280;
+				this.text = text({
+					text : 'STOP',
+					size : '20',
+					color : '#FFF',
+					align : 'center'
+				});
+				break;
+			case 'Fuel':
+				this.posImage = 350;
+				break;
+			case 'Spare wheel':
+				this.posImage = 420;
+				break;
+			case 'Reparation':
+				this.posImage = 490;
+				break;
+			case 'Flat tire wheel':
+				this.posImage = 560;
+				break;
+			case 'Accident':
+				this.posImage = 630;
+				break;
+			case 'No fuel':
+				this.posImage = 700;
+				break;
+			case 'Best wheel':
+				this.posImage = 770;
+				break;
+			case 'Priority':
+				this.posImage = 840;
+				break;
+			case 'Ace driver':
+				this.posImage = 910;
+				break;
+			case 'Fuel tank':
+				this.posImage = 980;
+				break;
+		};
+		return this;
 	},
 	draw : function(){
 		if(this.visible && this.y > -40){
-			c.save()
+			c.save();
+			c.scale(this.scale,this.scale);
 			c.fillStyle = '#000';
+			if(!this.turned){c.fillStyle = '#333';}
 			c.strokeStyle = '#BBB';
 			//shadow('1px 1px 5px rgba(0,0,0,0.7)');
+			var xs = this.x/this.scale,
+				ys = this.y/this.scale;
 			
-			this.minX = this.x-this.midW;
-			this.maxX = this.x+this.midW;
-			this.minY = this.y-this.midH;
-			this.maxY = this.y+this.midH;
+			this.minX = xs-this.midW;
+			this.maxX = xs+this.midW;
+			this.minY = ys-this.midH;
+			this.maxY = ys+this.midH;
 			
 			c.beginPath();
 			c.moveTo(this.minX,this.minY);
@@ -231,123 +438,142 @@ class_card.prototype = {
 			c.lineTo(this.minX,this.minY);
 			c.stroke();
 			c.fill();
+			c.closePath();
 			if(this.turned){
-				c.drawImage(cardsImage,this.posImage,0,70,90,this.x-this.midW+5,this.y-this.midH+5,70,90);
+				imageCards.draw({
+					x : this.posImage,
+					dx : xs-this.midW+5,
+					dy : ys-this.midH+5,
+				});
 				if(this.subtype == 'num'){
-					c.fillStyle = '#FFF';
-					c.font = this.fontSize +'px Arial,sans-serif';
-					c.textAlign = 'center';
-					c.fillText (this.type, this.x, this.y);
+					this.text.draw({x:xs,y:ys});
 				}
 				if(this.type == '50 max'){
-					c.fillStyle = '#FFF';
-					c.font = '34px Arial,sans-serif';
-					c.textAlign = 'center';
-					c.fillText (50, this.x, this.y-4);
-					c.font = '16px Arial,sans-serif';
-					c.fillText ('MAX', this.x, this.y+22);
+					this.text.draw({x:xs,y:ys-4});
+					this.textb.draw({x:xs,y:ys+22});
 				}
-				if(this.type == 'Fin max'){
-					c.fillStyle = '#FFF';
-					c.font = '22px Arial,sans-serif';
-					c.textAlign = 'center';
-					c.fillText ('MAX', this.x, this.y);
+				if(this.type == 'End max'){
+					this.text.draw({x:xs,y:ys});
+				}
+				if(this.type == 'Stop'){
+					this.text.draw({x:xs,y:ys});
 				}
 			}
-			c.closePath();
+			c.restore();
 		}
 	}
 };
-card = function(type,subtype){
-	return new class_card(type,subtype);
-};
-//deck
-deck_object = function(){this.init();};
-deck_object.prototype = {
+
+//Deck
+var deck_class = function(){this.init();};
+deck_class.prototype = {
 	cards : [],
 	top_card : 0,
+	length : 0,
 	init : function(){
-		var v = [
-		/*
-		[4,200,'num'],
-		[12,100,'num'],
-		[10,75,'num'],
-		[10,50,'num'],
-		*/
-		[10,25,'num'],
-		//[4,'50 max','yellow'],
-		
-		
-		[64,'Fin max','yellow'],
-		
-		/*
-		[3,'Sin combustible','red'],
-		[3,'Rueda pinchada','red'],
-		[3,'Accidente','red'],
-		[5,'Stop','red'],
-		[6,'Combustible','green'],
-		[6,'Rueda de auxilio','green'],
-		[6,'Reparación','green'],
-		[14,'Semáforo','green'],
-		[1,'Tanque combustible','orange'],
-		[1,'Rueda impinchable','orange'],
-		[1,'Prioritario','orange'],
-		[1,'As del volante','orange']
-		
-		*/
+		var v = [		
+			[4,200,'num'],
+			[12,100,'num'],
+			[10,75,'num'],
+			[10,50,'num'],
+			[10,25,'num'],
+			
+			[6,'End max','green'],
+			[4,'50 max','red'],
+			
+			[14,'Semaphore','green'],
+			[5,'Stop','red'],
+			
+			[6,'Fuel','green'],
+			[6,'Spare wheel','green'],
+			[6,'Reparation','green'],
+			
+			[3,'Flat tire wheel','red'],
+			[3,'Accident','red'],
+			[3,'No fuel','red'],
+			
+			[1,'Best wheel','orange'],
+			[1,'Priority','orange'],
+			[1,'Ace driver','orange'],
+			[1,'Fuel tank','orange']
 		];
 		for(var i=0;i<v.length;i++){
 			for(var j=0;j<v[i][0];j++){
 				this.cards.push(card(v[i][1],v[i][2]));
 			};
 		};
-		this.top_card = this.cards.length;
+		this.length = this.cards.length;
 		this.shuffle();
+		return this;
 	},
 	shuffle : function(){
-		for(var j, x, i = this.cards.length; i; j = parseInt(Math.random() * i), x = this.cards[--i], this.cards[i] = this.cards[j], this.cards[j] = x, this.cards[j].visible = false,this.cards[j].turned = false);
+		
+		for(var j, x, i = this.length; i; j = parseInt(Math.random() * i), x = this.cards[--i], this.cards[i] = this.cards[j], this.cards[j] = x, this.cards[j].visible = false,this.cards[j].turned = false,this.cards[j].scale = 1);
+		this.top_card = this.length;
 	},
 	getCard : function(){
 		this.top_card--;
-		var crd = this.cards[this.top_card];
-		crd.visible = true;
-		return crd;
+		var card = this.cards[this.top_card];
+		card.visible = true;
+		return card;
 	},
 	onTop : function(){
-		for(var i=0;i<this.cards.length;i++){
+		for(var i=0;i<this.length;i++){
 			var card = this.cards[i];
 			if(card.dragged){
-				
 				this.cards.splice(i,1);
 				this.cards.push(card);
-			}
-		}
+			};
+		};
 	}
-	
 };
 
-//Player
-player_object = function(humanOrPC){this.init(humanOrPC);}
 
-player_object.prototype = {
+//Player
+var player_class = function(humanOrPC){this.init(humanOrPC);}
+player_class.prototype = {
 	humanOrPC : '',//human or pc
+	handZoneCards : [],
+	runZoneCards : [],
+	maxVelZoneCards : [],
+	safeZoneCards : [],
+	handZoneCardsY : desktop.hand.y,
+	runZoneCardsX : desktop.runZoneCardsHuman.x,
+	runZoneCardsY : desktop.runZoneCardsHuman.y,
+	maxVelZoneCardsX : desktop.maxVelZoneCardsHuman.x,
+	maxVelZoneCardsY : desktop.maxVelZoneCardsHuman.y,
+	safeZoneCardsX : desktop.safeZoneCardsHuman.x,
+	safeZoneCardsY : desktop.safeZoneCardsHuman.y,
+	
+	count : {
+		v : 0,
+		av : 0,
+		x : 20,
+		y : 200
+	},
 	
 	init : function(humanOrPC){
-		this.clear();
+		this.reset();
 		this.humanOrPC = humanOrPC;
+		
 		if(humanOrPC == 'pc'){
-			this.handZoneCardsY = -65;
-		}
+			this.handZoneCardsY = 10;//-65;
+			this.runZoneCardsX = desktop.runZoneCardsPC.x;
+			this.maxVelZoneCardsX = desktop.maxVelZoneCardsPC.x;
+			this.safeZoneCardsX = desktop.safeZoneCardsPC.x;
+			this.count.y = 40;
+		};
+		return this;
 	},
-	clear : function(){
+	reset : function(){
+		this.count.v = 0;
+		this.count.av = 0;
 		this.handZoneCards = [];
 		this.runZoneCards = [];
 		this.maxVelZoneCards = [];
 		this.safeZoneCards = [];
 	},
-	handZoneCards : [],
-	handZoneCardsX : desktop.hand.x,
-	handZoneCardsY : desktop.hand.y,
+	
 	takeCard : function(card){
 		this.handZoneCards.push(card);
 		card.ay = this.handZoneCardsY;
@@ -365,39 +591,20 @@ player_object.prototype = {
 		this.handZoneCards = this.handZoneCards.sort(compareX);
 		for(var i = 0;i < this.handZoneCards.length;i++){
 			this.handZoneCards[i].ax = canvas.center.x - widthCard * (this.handZoneCards.length - 1)/2 + widthCard * i;
-		}
+		};
 	},
 	releaseCard : function(card){
 		for(var i = 0;i < this.handZoneCards.length;i++){
 			if(this.handZoneCards[i] == card){
 				this.handZoneCards.splice(i,1);
-			}
-		}
+			};
+		};
 		return card;
 	},
-	runZoneCards : [],
-	maxVelZoneCards : [],
-	safeZoneCards : []
-	
+	IA_play : function(){
 		
-	
-	
-	
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
+	},
+	drawCounter : function(){
+		
+	}
+};
