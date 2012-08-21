@@ -57,29 +57,50 @@ var titlePause = text({
 //Game Stage
 var game_stage_class = function(){
 	
-	var turn,cardDragged,discardedCards,
-		deck = new deck_class();
+	var currentPlayer = null,
+		enemyPlayer = null,
+		
+		
+		
+		
+		cardDragged,
+		
+		
+		deck = new deck_class(),
 		playerPC = new player_class('pc'),
 		playerHuman = new player_class('human'),
-		cursor = '',
 		
-	
+		
+		togglePlayer = function(){
+			if(currentPlayer == playerPC || currentPlayer == null){
+				currentPlayer = playerHuman;
+				enemyPlayer = playerPC;
+				
+			}else{
+				currentPlayer = playerPC;
+				enemyPlayer = playerHuman;
+							
+
+			};
+		l(currentPlayer.humanOrPC)
+		},
+		
+		
+		
+		
 		dealCards = function(){
 			deck.shuffle();
-			var currentPlayer = playerHuman,
-				numCard = 13;
-			var dealTimer = setInterval(function(){
+			togglePlayer();
+			var numCard = 13,
+			
+			dealTimer = setInterval(function(){
 				var card = deck.getCard();
 				currentPlayer.takeCard(card);
-				if(currentPlayer == playerPC){
-					currentPlayer = playerHuman;
-				}else{
-					currentPlayer = playerPC;
-				}
+				togglePlayer();
 				numCard--;
 				if(numCard<=0){
+					togglePlayer();
 					clearInterval(dealTimer);
-					turn = 'human';
 				}
 			},500);
 		},
@@ -100,48 +121,39 @@ var game_stage_class = function(){
 				},2000);
 			};*/
 			var card = deck.getCard();
-				
-			if(turn == 'human'){
-				turn = 'pc';
-				l('Juega pc')
-				playerPC.takeCard(card);
-			}else{
-				turn = 'human';
-				l('Juega human')
-				playerHuman.takeCard(card);
-			};
+			togglePlayer();
+			currentPlayer.takeCard(card);
 		},
 	
 		rulesEvaluate = function(card){ //Private
-			var currentPlayer,enemyPlayer,field,minLim = 335,maxLim = 465;
-			if(turn == 'human'){
-				currentPlayer = playerHuman;
-				enemyPlayer = playerPC;
-			}else{
-				currentPlayer = playerPC;
-				enemyPlayer = playerHuman;
-			};
+			var field,
+				minLim = 335,
+				maxLim = 465,
 			
-			var safeZoneTest = function(player,typ){
-				var enabled = true
-				for(var i = 0; i<player.safeZoneCards.length; i++){
-					if(player.safeZoneCards[i].type == typ){
-						enabled = false;
+			
+				safeCardTest = function(type){
+					var enabled = true
+					for(var i = 0; i<enemyPlayer.safe.cards.length; i++){
+						if(enemyPlayer.safe.cards[i].type == type){
+							enabled = false;
+						};
 					};
-				};
-				return enabled;
-			};
+					return enabled;
+				},
+				playCard = function(destin){
+					currentPlayer.releaseCard(card);
+					currentPlayer[destin].cards.push(card);
+					card.ax = currentPlayer[destin].x;
+					card.ay = currentPlayer[destin].y;
+					card.scale = 0.6;
+					currentPlayer[destin].y += 68;
+					currentPlayer.handOrderCards(card);
+				},
 			
-			var rulesPlay = function(field){				
+				rulesPlay = function(field){				
 				if(field == 'friend'){	
 					if(card.subtype == 'orange'){
-						currentPlayer.releaseCard(card);
-						currentPlayer.safeZoneCards.push(card);
-						card.ax = currentPlayer.safeZoneCardsX;
-						card.ay = currentPlayer.safeZoneCardsY;
-						card.scale = 0.6;
-						currentPlayer.safeZoneCardsY += 68;
-						currentPlayer.handOrderCards(card);
+						playCard('safe');
 						changeTurn();
 					}else if(card.subtype == 'num'){
 						var total,runLength = currentPlayer.runZoneCards.length;
@@ -290,8 +302,8 @@ var game_stage_class = function(){
 	//Drag Card Actions
 	this.dragStart = function(ev){
 		//if(turn == 'human'){
-			var mouseX = ev.clientX-canvas.offsetLeft + get_scroll().x,
-				mouseY = ev.clientY-canvas.offsetTop + get_scroll().y;
+			var mouseX = ev.clientX-canvas.offsetLeft + getScroll().x,
+				mouseY = ev.clientY-canvas.offsetTop + getScroll().y;
 			for(var i = 0;i < deck.length;i++){
 				var card = deck.cards[i]
 				if(card.visible){// && card.y > 375){
@@ -308,8 +320,8 @@ var game_stage_class = function(){
 	};
 	this.dragging = function(ev){
 		if(cardDragged.card){
-			var mouseX = ev.clientX-canvas.offsetLeft + get_scroll().x,
-				mouseY = ev.clientY-canvas.offsetTop + get_scroll().y;
+			var mouseX = ev.clientX-canvas.offsetLeft + getScroll().x,
+				mouseY = ev.clientY-canvas.offsetTop + getScroll().y;
 			cardDragged.card.x = mouseX + cardDragged.difX;
 			cardDragged.card.y = mouseY + cardDragged.difY;
 		}
@@ -362,18 +374,17 @@ var game_stage_class = function(){
 		return this;
 	};
 	this.hover = function(ev){
-		cursor = '';
 		for(var i = 0;i < deck.length;i++){
 			var card = deck.cards[i];
-			if(card.y > 375 && hit(ev,card.minX,card.maxX,card.minY,card.maxY) && turn == 'human'){
-				cursor = 'pointer';
+			if(card.y > 375 && hit(ev,card.minX,card.maxX,card.minY,card.maxY)){
+				mouseCursor = 'pointer';
 				break;
 			}
 		};
 		return this;
 	};
 	this.draw = function(){
-		canvas.style.cursor = cursor;
+		canvas.style.cursor = mouseCursor;
 		for(var i = 0;i < deck.length;i++){
 			deck.cards[i].draw();
 		};

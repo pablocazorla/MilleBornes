@@ -32,7 +32,7 @@ on = function(elem,eventType, eventHandler) {
 	}
 },
 /*Scroll*/
-get_scroll = function(){
+getScroll = function(){
    var x = 0, y = 0;
     if( typeof( window.pageYOffset ) == 'number' ) {
         //Netscape compliant
@@ -67,8 +67,8 @@ c.textBaseline = 'middle';
 //Functions ***************************************************************************************************
 //Hit detector for Events
 var hit = function(ev,xmin,xmax,ymin,ymax){
-	var mouseX = ev.clientX-canvas.offsetLeft + get_scroll().x,
-		mouseY = ev.clientY-canvas.offsetTop + get_scroll().y;
+	var mouseX = ev.clientX-canvas.offsetLeft + getScroll().x,
+		mouseY = ev.clientY-canvas.offsetTop + getScroll().y;
 	if(mouseX > xmin && mouseX < xmax && mouseY > ymin && mouseY < ymax){
 		return true;
 	}else{
@@ -76,7 +76,7 @@ var hit = function(ev,xmin,xmax,ymin,ymax){
 	};
 },
 //Draw shadow
-	shadow = function(arg){
+shadow = function(arg){
 	var sd = arg.split(' ');
 	c.shadowOffsetX = parseInt(sd[0]);
 	c.shadowOffsetY = parseInt(sd[1]);
@@ -101,7 +101,8 @@ drawPage = function(){
 	c.fill();
 	c.stroke();
 	c.closePath();
-};
+},
+mouseCursor = '';
 //Basic Classes ***************************************************************************************************
 //Text
 var text_class = function(custom){this.init(custom)},
@@ -252,40 +253,9 @@ img_class.prototype = {
 var desktop_class = function(){},
 	imageDesktop = img('img/desktop.jpg');
 desktop_class.prototype = {
-	deck : {
-		x : canvas.center.x,
-		y : 143
-	},
-	hand : {
-		y : 440
-	},
-	discardedCards : {
+	hole : {
 		x : canvas.center.x,
 		y : 272
-	},
-	runZoneCardsPC : {
-		x : 205,
-		y : 143
-	},
-	runZoneCardsHuman : {
-		x : 595,
-		y : 143
-	},
-	maxVelZoneCardsPC : {
-		x : 205,
-		y : 272
-	},
-	maxVelZoneCardsHuman : {
-		x : 595,
-		y : 272
-	},
-	safeZoneCardsPC : {
-		x : 62,
-		y : 114
-	},
-	safeZoneCardsHuman : {
-		x : 735,
-		y : 114
 	},
 	draw : function(){
 		imageDesktop.draw();
@@ -313,10 +283,10 @@ class_card.prototype = {
 	turned : false,
 	dragged : false,
 	scale : 1,
-	x : desktop.deck.x,
-	y : desktop.deck.y,
-	ax : desktop.deck.x,
-	ay : desktop.deck.y,
+	x : 0,
+	y : 0,
+	ax : 0,
+	ay : 0,
 	width : 80,
 	height : 100,
 	midW : 0,
@@ -416,7 +386,7 @@ class_card.prototype = {
 	},
 	draw : function(){
 		if(this.visible && this.y > -40){
-			c.save();
+			
 			c.scale(this.scale,this.scale);
 			c.fillStyle = '#000';
 			if(!this.turned){c.fillStyle = '#333';}
@@ -459,7 +429,6 @@ class_card.prototype = {
 					this.text.draw({x:xs,y:ys});
 				}
 			}
-			c.restore();
 		}
 	}
 };
@@ -468,6 +437,8 @@ class_card.prototype = {
 var deck_class = function(){this.init();};
 deck_class.prototype = {
 	cards : [],
+	x : canvas.center.x,
+	y : 143,
 	top_card : 0,
 	length : 0,
 	init : function(){
@@ -494,7 +465,7 @@ deck_class.prototype = {
 			
 			[1,'Best wheel','orange'],
 			[1,'Priority','orange'],
-			[1,'Ace driver','orange'],
+			[100,'Ace driver','orange'],
 			[1,'Fuel tank','orange']
 		];
 		for(var i=0;i<v.length;i++){
@@ -507,8 +478,20 @@ deck_class.prototype = {
 		return this;
 	},
 	shuffle : function(){
-		
-		for(var j, x, i = this.length; i; j = parseInt(Math.random() * i), x = this.cards[--i], this.cards[i] = this.cards[j], this.cards[j] = x, this.cards[j].visible = false,this.cards[j].turned = false,this.cards[j].scale = 1);
+		for(
+			var j, m, i = this.length; i;
+			j = parseInt(Math.random() * i),
+			m = this.cards[--i],
+			this.cards[i] = this.cards[j],
+			this.cards[j] = m,
+			this.cards[j].visible = false,
+			this.cards[j].turned = false,
+			this.cards[j].scale = 1,
+			this.cards[j].x = this.x,
+			this.cards[j].y = this.y,
+			this.cards[j].ax = this.x,
+			this.cards[j].ay = this.y
+		);
 		this.top_card = this.length;
 	},
 	getCard : function(){
@@ -533,17 +516,26 @@ deck_class.prototype = {
 var player_class = function(humanOrPC){this.init(humanOrPC);}
 player_class.prototype = {
 	humanOrPC : '',//human or pc
-	handZoneCards : [],
-	runZoneCards : [],
-	maxVelZoneCards : [],
-	safeZoneCards : [],
-	handZoneCardsY : desktop.hand.y,
-	runZoneCardsX : desktop.runZoneCardsHuman.x,
-	runZoneCardsY : desktop.runZoneCardsHuman.y,
-	maxVelZoneCardsX : desktop.maxVelZoneCardsHuman.x,
-	maxVelZoneCardsY : desktop.maxVelZoneCardsHuman.y,
-	safeZoneCardsX : desktop.safeZoneCardsHuman.x,
-	safeZoneCardsY : desktop.safeZoneCardsHuman.y,
+	hand : {
+		cards : [],
+		x : 0,
+		y : 440
+	},
+	run : {
+		cards : [],
+		x : 595,
+		y : 143
+	},
+	maxvel : {
+		cards : [],
+		x : 595,
+		y : 272
+	},
+	safe : {
+		cards : [],
+		x : 735,
+		y : 114
+	},
 	
 	count : {
 		v : 0,
@@ -557,10 +549,11 @@ player_class.prototype = {
 		this.humanOrPC = humanOrPC;
 		
 		if(humanOrPC == 'pc'){
-			this.handZoneCardsY = 10;//-65;
-			this.runZoneCardsX = desktop.runZoneCardsPC.x;
-			this.maxVelZoneCardsX = desktop.maxVelZoneCardsPC.x;
-			this.safeZoneCardsX = desktop.safeZoneCardsPC.x;
+			l('ES PC')
+			this.hand.y = 10;//-65;
+			this.run.x = 205;
+			this.maxvel.x = 205;
+			this.safe.x = 62;
 			this.count.y = 40;
 		};
 		return this;
@@ -568,15 +561,15 @@ player_class.prototype = {
 	reset : function(){
 		this.count.v = 0;
 		this.count.av = 0;
-		this.handZoneCards = [];
-		this.runZoneCards = [];
-		this.maxVelZoneCards = [];
-		this.safeZoneCards = [];
+		this.hand.cards = [];
+		this.run.cards = [];
+		this.maxvel.cards = [];
+		this.safe.cards = [];
 	},
 	
 	takeCard : function(card){
-		this.handZoneCards.push(card);
-		card.ay = this.handZoneCardsY;
+		this.hand.cards.push(card);
+		card.ay = this.hand.y;
 		this.handOrderCards(card);
 		var toTurn = setTimeout(function(){
 			card.turned = true;
@@ -588,15 +581,15 @@ player_class.prototype = {
 			return a.x - b.x;
 		},
 		widthCard = card.width + 20;
-		this.handZoneCards = this.handZoneCards.sort(compareX);
-		for(var i = 0;i < this.handZoneCards.length;i++){
-			this.handZoneCards[i].ax = canvas.center.x - widthCard * (this.handZoneCards.length - 1)/2 + widthCard * i;
+		this.hand.cards = this.hand.cards.sort(compareX);
+		for(var i = 0;i < this.hand.cards.length;i++){
+			this.hand.cards[i].ax = canvas.center.x - widthCard * (this.hand.cards.length - 1)/2 + widthCard * i;
 		};
 	},
 	releaseCard : function(card){
-		for(var i = 0;i < this.handZoneCards.length;i++){
-			if(this.handZoneCards[i] == card){
-				this.handZoneCards.splice(i,1);
+		for(var i = 0;i < this.hand.cards.length;i++){
+			if(this.hand.cards[i] == card){
+				this.hand.cards.splice(i,1);
 			};
 		};
 		return card;
